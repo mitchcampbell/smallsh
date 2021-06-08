@@ -2,7 +2,7 @@
 Author: Mitch Campbell
 
 ## About
-A project completed for OSU's CS344 Operating Systems, smallsh implements a bash-like shell program. 
+A project completed for OSU's CS344 Operating Systems, smallsh implements a bash-like shell. It can run abitrary commands that could otherwise be run using a typical shell.
 
 Here it is in action
 
@@ -10,13 +10,24 @@ Here it is in action
 
 ## Instructions
 ### Compile
-simply compile with
 ```bash
-gcc -o smallsh main.c --std=gnu99
+$ gcc -o smallsh main.c --std=gnu99
 ```
 
 ### Run
 and run with
 ```bash
-./smallsh
+$ ./smallsh
+```
+
+### Status
+to see the most recent background child process exit status
+```bash
+: status
+```
+
+### Exit
+to exit smallsh
+```bash
+: exit
 ```
