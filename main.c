@@ -13,21 +13,18 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-// #include "userCommand.h"
-
 // CONSTANTS
 #define MAX_STR_SIZE    2048
 #define MAX_ARGS        512
 
 // FLAGS
+#ifndef DEBUG
 #define DEBUG false
+#endif
 
 // GLOBALS
-// Foreground-only mode switch
-int fg_only = 0;
+int fg_only = 0;  // Foreground-only mode switch
 
-// FUNCTION DECLARATIONS
-// void run_child(struct userCommand *uc);
 
 // Struct: argList
 //
@@ -89,7 +86,6 @@ struct userCommand
 //      uc:   pointer to a userCommand
 char ** arg_pointer_array(struct userCommand *uc)
 {
-    // char *arg_ptrs[1 + MAX_ARGS + 1];
     char **arg_ptrs = calloc(1 + MAX_ARGS + 1, sizeof(char *));
 
     // Set command path as first argument
@@ -159,15 +155,14 @@ char *expand_vars(char *cl_string)
         for(int i = 0; i < strlen(cl_string) - 1; i++)
         {
             // Variable encountered. 
-            // Write process id to new_cl_string and skip next char
+            // Write process id to new_cl_string
             if( cl_string[i] == '$' && cl_string[i+1] == '$')
             {
                 strcat(new_cl_string, pid);
                 i++;
             }
 
-            // Variable not encountered. 
-            // Write char new_cl_string
+            // Variable not encountered. Write char new_cl_string
             else
             {
                 int ncls_length = strlen(new_cl_string);
@@ -227,7 +222,8 @@ struct userCommand *parse_command(char *cl_string)
     if(
         token != NULL 
         && strcmp(token, ">") != 0 
-        && strcmp(token, "<") != 0)
+        && strcmp(token, "<") != 0
+    )
     {
         arg_list_tail->argument = calloc(strlen(token) + 1, sizeof(char));
         strcpy(arg_list_tail->argument, token);
@@ -251,13 +247,9 @@ struct userCommand *parse_command(char *cl_string)
         {
             token = strtok_r(NULL, " ", &saveptr);
             if(token != NULL)
-            {
                 arg_list_tail = add_arg(arg_list_tail, "&");
-            }
             else if(!fg_only)
-            {
                 parsed_command->background = true;
-            }
         }
         // "&" not found, process as normal word
         else
@@ -289,15 +281,11 @@ struct userCommand *parse_command(char *cl_string)
 
         // Set background process flag
         else if (strcmp(token, "&") == 0 && !fg_only)
-        {
             parsed_command->background = true;
-        }
 
         // Unset background process flag
         else if (strcmp(token, "&") == 0 && fg_only)
-        {
             parsed_command->background = true;
-        }
 
         // Advance to next word
         token = strtok_r(NULL, " ", &saveptr);
@@ -321,9 +309,7 @@ int execute_user_command(struct userCommand *uc, int *fg_child_status)
     // Handle exit command
     // Returns to main, where final cleanup of child processes will occur
     if(strcmp(uc->command, "exit") == 0)
-    {
         return 0;
-    }
 
     // Handle status command
     // Checks status code left by most recently closed foreground process
@@ -351,21 +337,16 @@ int execute_user_command(struct userCommand *uc, int *fg_child_status)
     {
         // No argument passed, move to home directory
         if(uc->arguments == NULL)
-        {
             chdir(getenv("HOME"));
-        }
         // Move to directory passed as first argument
         else
-        {
             chdir(uc->arguments->argument);
-        }
         return 0;
     }
 
     // Handle non-built-in commands
     else
     {
-
         // Create child process
         pid_t child_pid = fork();
 
@@ -375,25 +356,19 @@ int execute_user_command(struct userCommand *uc, int *fg_child_status)
             case -1: ;
                 printf("Error: child failed to spawn\n");
                 fflush(stdout);
-
                 break;
 
             // Child process branch
             case 0: ;
-
                 // Set child process to ignore SIGTSTP signal
                 signal(SIGTSTP, SIG_IGN);
-
                 // Set foreground child processes not to ignore SIGINT signal
                 if(uc->background == false)
-                {
                     signal(SIGINT, SIG_DFL);
-                }
 
                 // Execute command and then exit
                 run_child(uc);
                 exit(0);
-
                 break;
 
             // Parent process branch
@@ -516,20 +491,15 @@ void run_child(struct userCommand *uc){
 //      uc:     userCommand struct to be freed
 void decon_user_command(struct userCommand *uc)
 {
-
     free(uc->command);
-
-    if( uc->infile_name != NULL ){
+    if( uc->infile_name != NULL )
         free(uc->infile_name);
-    }
-    if( uc->outfile_name != NULL ){
+    if( uc->outfile_name != NULL )
         free(uc->outfile_name);
-    }
 
     // Free memory allocated for arguments (linked list)
-    if( uc->arguments != NULL ){
+    if( uc->arguments != NULL )
         decon_arg_list(uc->arguments);
-    }
 
     // Finally, free memory allocated for userCommand struct
     free(uc);
@@ -545,9 +515,7 @@ void decon_arg_list(struct argList *curr_arg)
 {
     // If not at end of linked list, recurse on ->next
     if(curr_arg->next != NULL)
-    {
         decon_arg_list(curr_arg->next);
-    }
     
     // After all nodes further down list free, free self
     free(curr_arg->argument);
@@ -567,16 +535,12 @@ void catch_SIGTSTP(int signal_num)
         // Turn on
         case 0:
             fg_only = 1;
-            
-            // Report mode change
             int status = write(STDOUT_FILENO, "\nEntering foreground-only mode (& is now ignored)\n", 52);
             break;
 
         // Turn off
         case 1:
             fg_only = 0;
-
-            // Report mode change
             write(STDOUT_FILENO, "\nExiting foreground-only mode\n", 32);
             break;
     }
@@ -589,7 +553,6 @@ int main(void)
 {
 
     // Set initial signal actions
-
         struct sigaction SIGTSTP_action = {0};
 
         // Create signal action for toggling foreground-only mode
@@ -598,7 +561,6 @@ int main(void)
         SIGTSTP_action.sa_flags = SA_RESTART;
 
     // Register signal actions
-    
         // Start toggling of foreground mode on SIGTSTP signal
         sigaction(SIGTSTP, &SIGTSTP_action, NULL);
         // Start ignoring SIGINT signal
@@ -609,7 +571,6 @@ int main(void)
 
     // Create array to store pids of child processes
     int child_ids[512] = {0};
-    //memset(child_ids, 0, 512 * sizeof(int));
 
     // Create buffer to store command-line string
     char *cl_string = calloc(MAX_STR_SIZE + 2, sizeof(char));
@@ -617,11 +578,9 @@ int main(void)
     // Get commands from user until "exit" received
     do
     {
-
         // Clean up any child processes that are no longer running
         for(int i = 0; i < 512; i++)
         {
-            
             // Check each recorded background child process to see if it has exited.
             // If any child process has ended, report its exit status OR its terminating signal
             // and then remove it from the array
@@ -637,7 +596,6 @@ int main(void)
                         printf("Process %d exited with status (%d)\n", child_ids[i], WEXITSTATUS(child_status));
                         fflush(stdout);
                     }
-                    
                     // If exited abnormally, report terminating signal
                     if(WIFSIGNALED(child_status))
                     {
@@ -664,9 +622,8 @@ int main(void)
         cl_string[strlen(cl_string) - 1] = '\0';
 
         // Expand variables in command-line string
-        if(strlen(cl_string) > 1){
+        if(strlen(cl_string) > 1)
             cl_string = expand_vars(cl_string);
-        }
 
         // Parse command-line string
         struct userCommand *user_command = parse_command(cl_string);
@@ -679,10 +636,7 @@ int main(void)
         {
             // Find next free space in child_ids array
             int counter = 0;
-            while(child_ids[counter] != 0)
-            {
-                counter++;
-            }
+            while(child_ids[counter] != 0)  counter++;
 
             // Store child pid
             child_ids[counter] = new_child_id;
@@ -699,9 +653,7 @@ int main(void)
     for(int i = 0; i < 512; i++)
     {
         if(child_ids[i] != 0)
-        {
             kill(child_ids[i], SIGKILL);
-        }
     }
 
     exit(0);

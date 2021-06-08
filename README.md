@@ -15,7 +15,6 @@ $ gcc -o smallsh main.c --std=gnu99
 ```
 
 ### Run
-and run with
 ```bash
 $ ./smallsh
 ```
