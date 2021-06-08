@@ -11,7 +11,7 @@ Here it is in action
 ## Instructions
 ### Compile
 ```bash
-$ gcc -o smallsh main.c --std=gnu99
+$ make
 ```
 
 ### Run
@@ -19,13 +19,14 @@ $ gcc -o smallsh main.c --std=gnu99
 $ ./smallsh
 ```
 
-### Status
+### Special Commands
+#### Status
 to see the most recent background child process exit status
 ```bash
 : status
 ```
 
-### Exit
+#### Exit
 to exit smallsh
 ```bash
 : exit
