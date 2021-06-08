@@ -89,13 +89,13 @@ struct userCommand
 //      uc:   pointer to a userCommand
 char ** arg_pointer_array(struct userCommand *uc)
 {
-
-    char *arg_ptrs[1 + MAX_ARGS + 1];
+    // char *arg_ptrs[1 + MAX_ARGS + 1];
+    char **arg_ptrs = calloc(1 + MAX_ARGS + 1, sizeof(char *));
 
     // Set command path as first argument
     arg_ptrs[0] = uc->command;
 
-    // Traverse userCommand arguments, storing pointers sequentially
+    // Traverse userCommand arguments, storing pointers sequentially in arg_ptrs
     struct argList *curr_arg = uc->arguments;
     int counter = 1;
     while(curr_arg != NULL)
@@ -471,7 +471,7 @@ void run_child(struct userCommand *uc){
     }
     
     // Handle output redirection
-
+    
     // Redirect background process output to /dev/null if no outout file specified
     if(!uc->pipe_out && uc->background)
     {
