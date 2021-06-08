@@ -2,7 +2,7 @@
 Author: Mitch Campbell
 
 ## About
-A project completed for OSU's CS344 Operating Systems, smallsh implements a bash-like shell program. Here it is in action ![Example of smallsh in use](/images/example.png)
+A project completed for OSU's CS344 Operating Systems, smallsh implements a bash-like shell program. Here it is in action ![Example of smallsh in use](/images/example.PNG)
 
 ## Instructions
 ### Compile
