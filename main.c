@@ -15,20 +15,16 @@
 
 // #include "userCommand.h"
 
-
 // CONSTANTS
 #define MAX_STR_SIZE    2048
 #define MAX_ARGS        512
 
-
 // FLAGS
 #define DEBUG false
-
 
 // GLOBALS
 // Foreground-only mode switch
 int fg_only = 0;
-
 
 // FUNCTION DECLARATIONS
 // void run_child(struct userCommand *uc);
@@ -61,7 +57,7 @@ struct argList *add_arg(struct argList *old_tail, char *arg_token)
     // Point old tail to new tail node
     old_tail->next = new_tail;
 
-    return(new_tail);
+    return new_tail;
 };
 
 // Struct: user_command
@@ -112,7 +108,18 @@ char ** arg_pointer_array(struct userCommand *uc)
     // Set NULL pointer in final position
     arg_ptrs[counter] = NULL;
 
-    return(arg_ptrs);
+    return arg_ptrs;
+}
+
+// Function: print_err_now()
+//
+// Prints message to stderr and immediately flushes stderr.
+// Helpful for keeping error message closer to where child processes end.
+void print_err_now(char *message, int exit_val)
+{
+    fprintf(stderr, message);
+    fflush(stderr);
+    exit(exit_val);
 }
 
 // Function: expand_vars()
@@ -122,7 +129,6 @@ char ** arg_pointer_array(struct userCommand *uc)
 //      cl_string:  pointer to user's command-line string
 char *expand_vars(char *cl_string)
 {
-
     int var_count = 0;
     for(int i = 0; i < strlen(cl_string) - 1; i++)
     {
@@ -135,9 +141,7 @@ char *expand_vars(char *cl_string)
 
     // No variables present
     if(var_count == 0)
-    {
-        return(cl_string);
-    }
+        return cl_string;
 
     // Expand variables in cl_string into new string buffer
     else{
@@ -172,24 +176,23 @@ char *expand_vars(char *cl_string)
             }
         }
 
-        return (new_cl_string);
+        return new_cl_string;
     }
 
 }
 
 // Function: get_command()
 // 
-// Gets command-line input as input.
+// Gets input from command-line
 //
 //      cl_string: pointer to string buffer
 int get_command(char *cl_string)
 {
     printf(": ");
     fflush(stdout);
-    
     fgets(cl_string, 2050, stdin);
 
-    return(0);
+    return 0;
 }
 
 // Function: parse_command()
@@ -319,7 +322,7 @@ int execute_user_command(struct userCommand *uc, int *fg_child_status)
     // Returns to main, where final cleanup of child processes will occur
     if(strcmp(uc->command, "exit") == 0)
     {
-        return(0);
+        return 0;
     }
 
     // Handle status command
@@ -340,7 +343,7 @@ int execute_user_command(struct userCommand *uc, int *fg_child_status)
             printf("Most recent fg process terminated by signal (%d)\n", WTERMSIG(*fg_child_status));
             fflush(stdout);
         }
-        return(0);
+        return 0;
     }
 
     // Handle cd command
@@ -356,7 +359,7 @@ int execute_user_command(struct userCommand *uc, int *fg_child_status)
         {
             chdir(uc->arguments->argument);
         }
-        return(0);
+        return 0;
     }
 
     // Handle non-built-in commands
@@ -401,7 +404,7 @@ int execute_user_command(struct userCommand *uc, int *fg_child_status)
                     printf("Child process started, pid = %d\n", child_pid);
                     fflush(stdout);
 
-                    return(child_pid);
+                    return child_pid;
                 }
 
                 // Handle foreground child process
@@ -417,13 +420,13 @@ int execute_user_command(struct userCommand *uc, int *fg_child_status)
                         printf("Terminated with signal (%d)\n", WTERMSIG(*fg_child_status));
                         fflush(stdout);
                     }
-                    return(0);
+                    return 0;
                 }
         }
     
     }
 
-    return(0);
+    return 0;
 
 }
 
@@ -452,11 +455,7 @@ void run_child(struct userCommand *uc){
         int result = dup2(infile, 0);
         // If redirect failed, report error
         if(result == -1)
-        {
-            fprintf(stderr, "Error, input redirection failed\n");
-            fflush(stdout);
-            exit(1);
-        }
+            print_err_now("Error, input redirection failed\n", 1);
     }
 
     // Redirect child process input to file specified by user
@@ -468,50 +467,31 @@ void run_child(struct userCommand *uc){
         int result = dup2(infile, 0);
         // If redirect failed, report error
         if(result == -1)
-        {
-            printf("Error, input redirection failed\n");
-            fflush(stdout);
-            exit(1);
-        }
+            print_err_now("Error, input redirection failed\n", 1);
     }
     
     // Handle output redirection
 
-    // Redirect background process input to /dev/null (if no outout file specified)
+    // Redirect background process output to /dev/null if no outout file specified
     if(!uc->pipe_out && uc->background)
     {
-        // Open /dev/null for reading
+        // Redirect stdout to /dev/null
         outfile = open("/dev/null", O_WRONLY | O_CREAT | O_TRUNC, 0644);
-        // Force file pointer pointing to stdout to point to /dev/null
         int result = dup2(outfile, 1);
-        // If redirect failed, report error
         if(result == -1)
-        {
-            printf("Error, output redirection failed\n");
-            fflush(stdout);
-            exit(1);
-        }
+            print_err_now("Error, output redirection failed\n", 1);
     }
     if(uc->pipe_out)
     {
         // Open specified file for reading
         outfile = open(uc->outfile_name, O_WRONLY | O_CREAT | O_TRUNC, 0666);
-        // If file open fails, report error
         if(outfile == -1)
-        {
-            printf("Error, output file descriptor creation failed");
-            fflush(stdout);
-            exit(1);
-        }
-        // Force file pointer pointing to stdout to point to specified file
+            print_err_now("Error, output file descriptor creation failed", 1);
+
+        // Redirect stdout to specified file
         int result = dup2(outfile, 1);
-        // If redirect failed, report error
         if(result == -1)
-        {
-            printf("Error, output redirection failed\n");
-            fflush(stdout);
-            exit(1);
-        }
+            print_err_now("Error, output redirection failed\n", 1);
     }
     
     // Try executing command on path
@@ -519,16 +499,12 @@ void run_child(struct userCommand *uc){
     
     // If command not found on path, try executing in cwd
     int off_path = 1;
-    if(!on_path){
+    if(!on_path)
         off_path = execv(uc->command, arg_array);
-    }
 
-    // If command not found on path or local, report error
+    // If command not found on path or in cwd, report error
     if(on_path && off_path)
-    {
-        printf("Error: couldn't find command\n");
-        exit(1);
-    }
+        print_err_now("Error: couldn't find command\n", 1);
 
     exit(0);
 }
